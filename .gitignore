@@ -35,6 +35,8 @@
 !/docs/*.md
 # docs/fdroid/: the F-Droid recipe, kept beside the build it drives
 !/docs/fdroid
+# docs/screenshots/: the keyboard images shown in README.md
+!/docs/screenshots
 
 # app/: build script, R8 rules, main sources, and JVM unit tests only
 /app/*
