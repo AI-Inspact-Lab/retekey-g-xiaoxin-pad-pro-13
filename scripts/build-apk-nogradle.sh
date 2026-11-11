@@ -85,7 +85,12 @@ FINAL="release/ReteKey-G-$VERSION_NAME.apk"
 # The passwords go to apksigner through the environment, never on its command line, where any
 # other process on the machine could read them from the process list.
 export KEYSTORE_PASSWORD KEY_PASSWORD
-java -jar "$APKSIGNER_JAR" sign --v2-signing-enabled true --v3-signing-enabled true --v4-signing-enabled false \
+# v1 + v2 + v3, not v3 alone: Android itself verifies v3 from 9.0 on, but device makers' installers
+# and security scanners (and the Gradle default, which is v2) expect the older schemes too, and an
+# APK carrying only v3 can be refused before Android ever sees it. --min-sdk-version 24 is what
+# makes apksigner keep v2 alongside v3; the app's own minSdk (28) is unchanged.
+java -jar "$APKSIGNER_JAR" sign --min-sdk-version 24 \
+  --v1-signing-enabled true --v2-signing-enabled true --v3-signing-enabled true --v4-signing-enabled false \
   --ks "$KEYSTORE" --ks-key-alias "$KEY_ALIAS" \
   --ks-pass env:KEYSTORE_PASSWORD --key-pass env:KEY_PASSWORD \
   --out "$FINAL" "$OUT/aligned.apk"
