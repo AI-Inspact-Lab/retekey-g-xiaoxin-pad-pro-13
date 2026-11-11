@@ -1,0 +1,8 @@
+ReteKey G
+Copyright (c) ReteKey contributors (original work) and ReteKey G contributors (modifications)
+
+ReteKey G is a modified version of ReteKey IME — https://github.com/rubidus-api/retekey_apk —
+distributed under the MIT License (see LICENSE). The modifications give the on-screen keyboard a
+Gboard-style look and arrangement; the input engine is ReteKey's own.
+
+Third-party notices inherited from ReteKey IME are in THIRD_PARTY_NOTICES.md.

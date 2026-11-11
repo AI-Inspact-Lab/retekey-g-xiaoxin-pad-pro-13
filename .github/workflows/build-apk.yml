@@ -1,0 +1,114 @@
+# Builds ReteKey G with the project's own Gradle setup on every push to main, and attaches the APK
+# to a GitHub Release when a tag like v0.0.1-beta is pushed.
+#
+# Signing: add these repository secrets (Settings → Secrets and variables → Actions) to get a
+# release APK signed with your own key, so each new build installs over the last one:
+#   KEYSTORE_BASE64   base64 of the .keystore file
+#   KEYSTORE_PASSWORD the store password
+#   KEY_ALIAS         the key alias
+#   KEY_PASSWORD      the key password
+# Without them the workflow builds the debug variant instead (throwaway debug key), which is
+# uploaded as a workflow artifact only and never attached to a Release.
+#
+# Security:
+#   - Least privilege: the build job can only read the repository; only the release job, which
+#     runs on tags and only for signed builds, may write (to create the Release).
+#   - Third-party actions are pinned to full commit SHAs, not movable tags.
+#   - The keystore is written to the runner's temp directory and deleted when the job ends;
+#     pull requests (including from forks) do not trigger this workflow, so secrets never reach
+#     code that is not in this repository.
+name: Build APK
+
+on:
+  push:
+    branches: [ main ]
+    tags: [ 'v*' ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    outputs:
+      variant: ${{ steps.signing.outputs.variant }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-java@c5195efecf7bdfc987ee8bae7a71cb8b11521c00 # v4.7.1
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Signing key from secrets
+        id: signing
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          if [ -n "$KEYSTORE_BASE64" ]; then
+            umask 077
+            echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.keystore"
+            {
+              echo "storeFile=$RUNNER_TEMP/release.keystore"
+              echo "storePassword=$KEYSTORE_PASSWORD"
+              echo "keyAlias=$KEY_ALIAS"
+              echo "keyPassword=$KEY_PASSWORD"
+            } > keystore.properties
+            echo "variant=Release" >> "$GITHUB_OUTPUT"
+          else
+            echo "::warning::No signing secrets: building the debug variant."
+            echo "variant=Debug" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Unit tests
+        run: ./gradlew --no-daemon testModernDebugUnitTest
+
+      - name: Build
+        run: ./gradlew --no-daemon assembleModern${{ steps.signing.outputs.variant }}
+
+      - name: Remove signing material
+        if: always()
+        run: rm -f keystore.properties "$RUNNER_TEMP/release.keystore"
+
+      - name: Collect APK
+        env:
+          VARIANT: ${{ steps.signing.outputs.variant }}
+        run: |
+          mkdir -p dist
+          name=$(grep -m1 'versionName = ' app/build.gradle | sed -E 's/.*"(.*)".*/\1/')
+          variant=$(echo "$VARIANT" | tr '[:upper:]' '[:lower:]')
+          cp app/build/outputs/apk/modern/${variant}/*.apk "dist/ReteKey-G-${name}-${variant}.apk"
+          ls -la dist
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: ReteKey-G-apk
+          path: dist/*.apk
+
+  release:
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v') && needs.build.outputs.variant == 'Release'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: ReteKey-G-apk
+          path: dist
+
+      - name: Attach to the Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+          REPO: ${{ github.repository }}
+        run: |
+          gh release create "$TAG" dist/*.apk --repo "$REPO" --prerelease \
+            --title "ReteKey G $TAG" --notes "Gboard-style ReteKey build." \
+            || gh release upload "$TAG" dist/*.apk --repo "$REPO" --clobber
