@@ -13,6 +13,8 @@
 #   KEYSTORE, KEYSTORE_PASSWORD, KEY_ALIAS, KEY_PASSWORD   — or a keystore.properties at the root
 # Output: release/ReteKey-G-<versionName>.apk
 set -euo pipefail
+# The helper scripts are Python; never leave bytecode caches in the repository.
+export PYTHONDONTWRITEBYTECODE=1
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
@@ -41,9 +43,20 @@ TARGET_SDK=36
 OUT="${OUT:-$ROOT/build-nogradle}"
 rm -rf "$OUT" && mkdir -p "$OUT/gen" "$OUT/classes" "$OUT/dex"
 
-# The manifest names no package (Gradle injects the namespace); aapt2 needs one.
-sed -E "0,/<manifest /s//<manifest package=\"$NAMESPACE\" /" app/src/main/AndroidManifest.xml \
-  > "$OUT/AndroidManifest.xml"
+# The manifest names no package (Gradle injects the namespace); aapt2 needs one. And every class
+# name written relative to it (".Foo") is spelled out in full against the namespace, as Gradle's
+# manifest merger does: once the package is renamed to the application id, a relative name would
+# point into com.retekey.g instead. aapt2 rewrites android:name itself but not
+# android:targetActivity, and an activity-alias whose target is not in the manifest makes Android
+# refuse the whole APK ("There was a problem parsing the package").
+sed -E -e "0,/<manifest /s//<manifest package=\"$NAMESPACE\" /" \
+  -e "s/(android:(name|targetActivity|parentActivityName|backupAgent|manageSpaceActivity)=\")\./\1$NAMESPACE./g" \
+  app/src/main/AndroidManifest.xml > "$OUT/AndroidManifest.xml"
+if grep -qE 'android:[A-Za-z]+="\.[A-Za-z]' "$OUT/AndroidManifest.xml"; then
+  echo "relative class name left in the manifest:" >&2
+  grep -nE 'android:[A-Za-z]+="\.[A-Za-z]' "$OUT/AndroidManifest.xml" >&2
+  exit 1
+fi
 
 echo "• aapt2 compile"
 # --legacy: what the Android Gradle Plugin passes; it lets "1% to 50%" in prose through.
@@ -95,4 +108,6 @@ java -jar "$APKSIGNER_JAR" sign --min-sdk-version 24 \
   --ks-pass env:KEYSTORE_PASSWORD --key-pass env:KEY_PASSWORD \
   --out "$FINAL" "$OUT/aligned.apk"
 java -jar "$APKSIGNER_JAR" verify --print-certs "$FINAL" | head -3
+# Refuse to hand over an APK that Android would refuse to parse (scripts/check-apk.py).
+python3 "$ROOT/scripts/check-apk.py" "$FINAL" "$AAPT2"
 echo "✔ $FINAL"
