@@ -4,7 +4,7 @@
 <br>
 A Gboard-style Korean keyboard for the Lenovo Xiaoxin Pad Pro 13 with a physical keyboard
 
-[한국어](#한국어) · [English](#english) · [다운로드 · Download](https://github.com/AI-Inspact-Lab/retekey-g-xiaoxin-pad-pro-13/releases)
+[한국어](#한국어) · [English](#english) · [다운로드 · Download](https://github.com/Choo-AI-Dev/retekey-g-xiaoxin-pad-pro-13/releases)
 
 <table>
   <tr>
@@ -51,7 +51,7 @@ A Gboard-style Korean keyboard for the Lenovo Xiaoxin Pad Pro 13 with a physical
 ### 사용법
 
 1. 쓰던 키보드 앱(Gboard, 네이버 키보드 등)을 삭제합니다. 기본 앱이라 삭제가 안 되면 '사용 중지'합니다.
-2. [Releases](https://github.com/AI-Inspact-Lab/retekey-g-xiaoxin-pad-pro-13/releases)에서 `ReteKey-G-0.0.0-beta.apk`를 받아 설치합니다. (Android 9.0 이상, '출처를 알 수 없는 앱' 설치 허용)
+2. [Releases](https://github.com/Choo-AI-Dev/retekey-g-xiaoxin-pad-pro-13/releases)에서 `ReteKey-G-0.0.0-beta.apk`를 받아 설치합니다. (Android 9.0 이상, '출처를 알 수 없는 앱' 설치 허용)
 3. 설정 → 시스템 → 키보드 → 화면 키보드에서 **ReteKey G**를 켜면 끝입니다.
 
 ### 베타 안내
@@ -83,7 +83,7 @@ So ReteKey G keeps ReteKey's input engine (Hangul composition, Korean/English sw
 ### How to use
 
 1. Uninstall the keyboard app you use now (Gboard, Naver Keyboard, etc.). If it is a built-in app that cannot be uninstalled, disable it.
-2. Download `ReteKey-G-0.0.0-beta.apk` from [Releases](https://github.com/AI-Inspact-Lab/retekey-g-xiaoxin-pad-pro-13/releases) and install it (Android 9.0 or later; allow installs from unknown sources).
+2. Download `ReteKey-G-0.0.0-beta.apk` from [Releases](https://github.com/Choo-AI-Dev/retekey-g-xiaoxin-pad-pro-13/releases) and install it (Android 9.0 or later; allow installs from unknown sources).
 3. Turn on **ReteKey G** in Settings → System → Keyboard → On-screen keyboard, and you are done.
 
 ### Beta
